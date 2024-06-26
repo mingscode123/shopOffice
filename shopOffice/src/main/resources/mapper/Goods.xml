@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.goods.dao.GoodsDao">
+
+	<resultMap type="com.shop.table.vo.GoodsInfoVO" id="goodsMap">
+		<result property="goodsCd" column="GOODS_CD" />
+		<result property="ctCd" column="CT_CD" />
+		<result property="goodsName" column="GOODS_NAME" />
+		<result property="normalPrice" column="NORMAL_PRICE" />
+		<result property="sellPrice" column="SELL_PRICE" />
+		<result property="ivQty" column="IV_QTY" />
+		<result property="goodsStatus" column="GOODS_STATUS" />
+		<result property="supplierCd" column="SUPPLIER_CD" />
+		<result property="thumnailUrl" column="THUMNAIL_URL" />
+		<result property="content" column="CONTENT" />
+		<result property="regDt" column="REG_DT" />
+		<result property="ctName" column="CT_NAME" />
+		<result property="topCt" column="TOP_CT" />
+		<result property="middleCt" column="MIDDLE_CT" />
+		<result property="subCt" column="SUB_CT" />
+		<result property="supplierName" column="SUPPLIER_NAME" />
+	</resultMap>
+
+	<resultMap type="com.shop.table.vo.CategoryInfoVO"
+		id="categoryMap">
+		<result property="ctCd" column="CT_CD" />
+		<result property="ctName" column="CT_NAME" />
+		<result property="ctLevel" column="CT_LEVEL" />
+		<result property="upCtCd" column="UP_CT_CD" />
+		<result property="regDt" column="REG_DT" />
+	</resultMap>
+
+	<resultMap type="com.shop.table.vo.SupplierInfoVo"
+		id="supplierMap">
+		<result property="supplierCd" column="SUPPLIER_CD" />
+		<result property="supplierName" column="SUPPLIER_NAME" />
+	</resultMap>
+
+
+	<select id="selectGoodsList" resultMap="goodsMap">
+		SELECT
+		A.GOODS_CD,
+		A.GOODS_NAME,
+		(SELECT
+		LTRIM(SYS_CONNECT_BY_PATH(B.CT_NAME, ' > '), ' > ')
+		FROM
+		TB_GOODS_CATEGORY B
+		WHERE
+		B.CT_CD = A.CT_CD
+		START WITH
+		B.UP_CT_CD IS NULL
+		CONNECT BY
+		PRIOR B.CT_CD = B.UP_CT_CD)as CT_NAME,
+		A.SELL_PRICE,
+		A.IV_QTY,
+		TO_CHAR(A.REG_DT, 'yyyy-mm-dd') REG_DT,
+		A.GOODS_STATUS,
+		A.CT_CD
+		FROM
+		TB_GOODS_INFO A
+		INNER JOIN
+		TB_GOODS_CATEGORY B ON A.CT_CD = B.CT_CD
+		<if test="goodsName!=null and goodsName!=''">
+			AND GOODS_NAME LIKE '%'||#{goodsName}||'%'
+		</if>
+		<if test="supplierCd!=null and supplierCd!=''">
+			AND SUPPLIER_CD LIKE'%'||#{supplierCd}||'%'
+		</if>
+		<if test="goodsStatus!=null and goodsStatus!=''">
+			AND GOODS_STATUS = #{goodsStatus}
+		</if>
+		<choose>
+			<when test="subCt !=null and  subCt !=''">
+				AND A.CT_CD = #{subCt}
+			</when>
+			<when test="middleCt !=null and middleCt !=''">
+				AND B.UP_CT_CD = #{middleCt}
+			</when>
+			<when test="topCt !=null and topCt!=''">
+				AND B.CT_CD LIKE CONCAT(#{topCt}, '%')
+			</when>
+		</choose>
+	</select>
+
+	<select id="selectCategoryList" resultMap="categoryMap">
+		SELECT
+		CT_CD,
+		CT_NAME,
+		CT_LEVEL,
+		UP_CT_CD,
+		REG_DT
+		FROM TB_GOODS_CATEGORY
+		WHERE 1=1
+		<if test="upCtCd!=null and upCtCd!=''">
+			AND UP_CT_CD = #{upCtCd}
+		</if>
+		AND CT_LEVEL = #{ctLevel}
+	</select>
+
+	<select id="selectSupplier" resultMap="supplierMap">
+		SELECT
+		SUPPLIER_CD,
+		SUPPLIER_NAME
+		FROM TB_SUPPLIER_INFO
+		WHERE 1=1
+		<if test="supplierCd!=null and supplierCd!=''">
+			AND SUPPLIER_CD = #{supplierCd}
+		</if>
+
+	</select>
+
+	<select id="selectGoodsInfoList" resultMap="goodsMap">
+		SELECT
+		A.GOODS_CD,
+		A.GOODS_NAME,
+		A.NORMAL_PRICE,
+		A.SELL_PRICE,
+		A.IV_QTY,
+		A.GOODS_STATUS,
+		A.SUPPLIER_CD,
+		A.THUMNAIL_URL,
+		A.CONTENT,
+		A.CT_CD
+		FROM TB_GOODS_INFO A , TB_GOODS_CATEGORY B
+		WHERE A.GOODS_CD = #{goodsCd}
+		AND A.CT_CD = B.CT_CD
+
+	</select>
+
+	<select id="selectGoodsInfo" resultMap="goodsMap">
+		SELECT
+		 A.GOODS_CD,
+		 A.GOODS_NAME,
+		 A.NORMAL_PRICE,
+		 A.SELL_PRICE,
+		 A.IV_QTY,
+        (SELECT CT_CD
+         FROM TB_GOODS_CATEGORY 
+         WHERE SUBSTR(A.CT_CD, 1, 2) = SUBSTR(CT_CD, 1, 3) 
+         AND ROWNUM = 1) AS TOPCT,
+        (SELECT CT_CD
+         FROM TB_GOODS_CATEGORY 
+         WHERE B.UP_CT_CD = CT_CD 
+         AND ROWNUM = 1) AS MIDDLECT,
+        (SELECT CT_CD
+         FROM TB_GOODS_CATEGORY 
+         WHERE A.CT_CD = CT_CD 
+         AND ROWNUM = 1) AS SUBCT,
+		 A.GOODS_STATUS,
+		 A.SUPPLIER_CD,
+		 A.THUMNAIL_URL,
+		 A.CONTENT
+		FROM TB_GOODS_INFO A , TB_GOODS_CATEGORY B
+		WHERE A.GOODS_CD = #{goodsCd}
+		AND A.CT_CD = B.CT_CD
+
+	</select>
+	
+	<update id="updateGoodsDetail">
+		UPDATE 
+	    TB_GOODS_INFO
+		SET
+	    GOODS_NAME = #{goodsName},
+	    NORMAL_PRICE = #{normalPrice},
+	    SELL_PRICE = #{sellPrice},
+	    IV_QTY = #{ivQty},
+	    GOODS_STATUS = #{goodsStatus},
+	    SUPPLIER_CD = #{supplierCd},
+	    <if test="thumnailUrl!=null and thumnailUrl!=''">
+		AND THUMNAIL_URL = #{thumnailUrl},
+		</if>
+	    CONTENT = #{content}
+		WHERE
+	    GOODS_CD = #{goodsCd}
+	</update>
+
+
+</mapper>

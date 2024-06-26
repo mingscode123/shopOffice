@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.user.dao.UserDao">
+	
+	<resultMap type="com.shop.table.vo.UserInfoVO" id="userMap">
+		<result property="userId" 		column="user_id" />
+		<result property="userPwd" 		column="user_pwd" />
+		<result property="userName" 	column="user_name" />
+		<result property="phone" 		column="phone" />
+		<result property="email" 		column="email" />
+		<result property="addr" 		column="addr" />
+		<result property="addrDtl" 		column="addr_dtl" />
+		<result property="joinDt"	 	column="join_dt" />
+		<result property="withdrawYn" 	column="withdraw_yn" />
+		<result property="withdrawDt" 	column="withdraw_dt" />
+		<result property="orderCount" 	column="order_count" />
+		<result property="orderPrice" 	column="order_price" />
+	</resultMap>
+	
+	<resultMap type="com.shop.table.vo.OrderInfoVO" id="orderMap">
+		<result property="orderNo" 			column="order_no" />
+		<result property="userId" 			column="user_id" />
+		<result property="orderGoodsName" 	column="order_goods_name" />
+		<result property="orderPrice" 		column="order_price" />
+		<result property="orderStatus" 		column="order_status" />
+		<result property="orderDt" 			column="order_dt" />
+		<result property="receiveName" 		column="receive_name" />
+		<result property="zipcd"	 		column="zipcd" />
+		<result property="addr" 			column="addr" />
+		<result property="addtDtl" 			column="addr_dtl" />
+		<result property="memo" 			column="memo" />
+		<result property="regDt" 			column="reg_dt" />
+		<result property="buyQty" 			column="buy_qty" />
+	</resultMap>
+	
+	<select id="selectUserList" resultMap="userMap">
+		SELECT 
+		USER_ID,
+		USER_NAME,
+		USER_PWD,
+		PHONE,
+		EMAIL,
+		ADDR,
+		ADDR_DTL,
+		TO_CHAR(JOIN_DT, 'YYYY-MM-DD') AS JOIN_DT,
+		NVL(WITHDRAW_YN, '-') AS WITHDRAW_YN,
+  		NVL(TO_CHAR(WITHDRAW_DT, 'YYYY-MM-DD'), '-') AS WITHDRAW_DT
+		FROM TB_USER_INFO
+		where 1=1
+		<if test="userName!=null and userName!=''">
+		and user_name like '%'||#{userName}||'%'
+		</if>
+		<if test="withdrawYn!=null and withdrawYn!=''">
+  		and withdraw_yn = #{withdrawYn}
+  		</if>
+  		<if test="joinDtFrom!=null and joinDtFrom!=''">
+  		and to_char(join_dt,'yyyy-mm-dd') <![CDATA[ >= ]]> #{joinDtFrom}
+  		</if>
+  		<if test="joinDtTo!=null and joinDtTo!=''">
+  		and to_char(join_dt,'yyyy-mm-dd') <![CDATA[ <= ]]> #{joinDtTo}
+  		</if>
+  		
+	</select>
+	
+	<select id="selectUserInfo" resultMap="userMap">
+		SELECT 
+		A.USER_ID,
+		A.USER_NAME,
+		A.USER_PWD,
+		A.PHONE,
+		A.EMAIL,
+		A.ADDR,
+		A.ADDR_DTL,
+		TO_CHAR(A.JOIN_DT, 'YYYY-MM-DD') AS JOIN_DT,
+   		NVL(A.WITHDRAW_YN, '-') AS WITHDRAW_YN,
+   		NVL(TO_CHAR(A.WITHDRAW_DT, 'YYYY-MM-DD'), '-') AS WITHDRAW_DT,
+   		NVL(B.ORDER_COUNT, 0) AS ORDER_COUNT,
+  		NVL(B.ORDER_PRICE, 0) AS ORDER_PRICE
+		FROM TB_USER_INFO A LEFT JOIN
+			( SELECT USER_ID ,COUNT(*) ORDER_COUNT,SUM(ORDER_PRICE) ORDER_PRICE
+		 	 FROM TB_ORDER_INFO	
+		 	 WHERE USER_ID = #{userId}
+		 	 GROUP BY USER_ID
+	 		) B ON A.USER_ID = B.USER_ID
+		WHERE A.USER_ID = #{userId} 
+	</select> 
+	
+	<select id="selectOrderList" resultMap="orderMap">
+		SELECT 
+		A.ORDER_NO,
+		A.USER_ID,
+		A.ORDER_GOODS_NAME,
+		A.ORDER_PRICE,
+		A.ORDER_STATUS,
+		A.RECEIVE_NAME,
+		A.ADDR,
+		A.ADDR_DTL,
+        B.BUY_QTY
+		FROM TB_ORDER_INFO A ,
+			 ( SELECT ORDER_NO,SUM(BUY_QTY) BUY_QTY
+			   FROM TB_ORDER_GOODS
+			  GROUP BY ORDER_NO
+			 ) B
+		WHERE A.ORDER_NO = B.ORDER_NO 
+		AND USER_ID = #{userId}
+	</select>
+	
+	<select id="selectUserList2" resultMap="userMap">
+	select * from TB_USER_INFO
+  		
+	</select>
+</mapper>

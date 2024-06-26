@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.user.dao.InquiryDao">
+	
+	<resultMap type="com.shop.table.vo.InquiryInfoVO" id="inquiryMap">
+		<result property="userId" 			column="user_id" />
+		<result property="userName" 		column="user_name" />
+		<result property="boardSeq" 		column="board_seq" />
+		<result property="boardType" 		column="board_type" />
+		<result property="title" 			column="title" />
+		<result property="content" 			column="content" />
+		<result property="attchFile" 		column="attch_file" />
+		<result property="replyYn" 			column="reply_yn" />
+		<result property="replyContent"	 	column="reply_content" />
+		<result property="regDt" 			column="reg_dt" />
+		<result property="delYn" 			column="del_yn" />
+		<result property="replyDt" 			column="reply_dt" />
+		
+	</resultMap>
+	
+	<select id="selectInquiryList" resultMap="inquiryMap">
+	
+		SELECT 
+	    B.BOARD_TYPE,
+	    A.USER_ID,
+	    B.BOARD_SEQ,
+	    A.USER_NAME,
+	    B.TITLE,
+	    TO_CHAR(B.REG_DT, 'YYYY-MM-DD') AS REG_DT,
+	    NVL(B.REPLY_YN, '-') AS REPLY_YN,
+	    TO_CHAR(B.REPLY_DT, 'YYYY-MM-DD') AS REPLY_DT,
+	    NVL(B.DEL_YN, '-') AS DEL_YN
+		FROM TB_USER_INFO A
+		INNER JOIN TB_BOARD_INFO B ON A.USER_ID = B.USER_ID
+		WHERE 1=1
+		<if test="userName!=null and userName!=''">
+		AND A.USER_NAME LIKE '%'||#{userName}||'%'
+		</if>
+		<if test="replyYn!=null and replyYn!=''">
+  		AND REPLY_YN = #{replyYn}
+  		</if>
+  		<if test="regDtFrom!=null and regDtFrom!=''">
+  		AND TO_CHAR(REG_DT,'yyyy-mm-dd') <![CDATA[ >= ]]> #{regDtFrom}
+  		</if>
+  		<if test="regDtTo!=null and regDtTo!=''">
+  		AND TO_CHAR(REG_DT,'yyyy-mm-dd') <![CDATA[ <= ]]> #{regDtTo}
+  		</if>
+  		
+	</select>
+	
+	<select id="selectInquiryInfo" resultMap="inquiryMap">
+	
+		SELECT 
+	    B.TITLE,
+	    B.BOARD_TYPE,
+	    A.USER_ID,
+	    A.USER_NAME,
+	    B.ATTCH_FILE,
+	    TO_CHAR(B.REG_DT, 'YYYY-MM-DD') AS REG_DT,
+	    B.CONTENT,
+	    B.REPLY_CONTENT
+		FROM TB_USER_INFO A
+		INNER JOIN TB_BOARD_INFO B ON A.USER_ID = B.USER_ID
+		WHERE A.USER_ID = #{userId}
+		AND B.board_seq = #{boardSeq}
+
+
+  		
+	</select>
+	
+	 		
+	<update id="updateReply">
+		UPDATE 
+		TB_BOARD_INFO
+		SET REPLY_CONTENT = #{replyContent},
+			REPLY_DT = SYSDATE,
+			REPLY_YN = 'Y'
+		WHERE
+		 USER_ID = #{userId} 
+		AND
+		 BOARD_SEQ = #{boardSeq}
+	</update>
+	
+
+	
+
+	
+</mapper>

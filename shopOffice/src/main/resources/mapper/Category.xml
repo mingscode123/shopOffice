@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.goods.dao.CategoryDao">
+	
+	<resultMap type="com.shop.table.vo.CategoryInfoVO" id="categoryMap">
+		<result property="ctCd" 		column="ct_cd" />
+		<result property="ctName" 		column="ct_name" />
+		<result property="ctLevel" 		column="ct_level" />
+		<result property="upCtCd" 		column="up_ct_cd" />
+		<result property="regDt" 		column="reg_dt" />
+	</resultMap>
+
+	<select id="selectCategoryList" resultMap="categoryMap">
+		SELECT 
+		CT_CD,
+		CT_NAME,
+		CT_LEVEL,
+		UP_CT_CD,
+		REG_DT
+		FROM TB_GOODS_CATEGORY	
+		WHERE 1=1
+		<if test="upCtCd!=null and upCtCd!=''">
+		AND UP_CT_CD = #{upCtCd}
+		</if>
+		AND CT_LEVEL = #{ctLevel}
+	</select>
+	
+	<insert id="insertCategory" >
+		INSERT INTO TB_GOODS_CATEGORY (CT_CD, CT_NAME, CT_LEVEL, UP_CT_CD, REG_DT)
+		SELECT 
+		    CASE 
+		        WHEN CT_LEVEL = 1 THEN REPLACE('A'||TO_CHAR(CT_CD+1,'99'),' ','')
+		        WHEN CT_LEVEL = 2 THEN REPLACE(#{upCtCd}||TO_CHAR(CT_CD+1,'00'),' ','')
+		        WHEN CT_LEVEL = 3 THEN REPLACE(#{upCtCd}||TO_CHAR(CT_CD+1,'00'),' ','')
+		    END AS CT_CD,
+		    #{ctName},
+		    #{ctLevel},
+		    #{upCtCd},
+		    SYSDATE
+		FROM (
+		    SELECT 
+		        CT_LEVEL, 
+		        CASE 
+		            WHEN CT_LEVEL = 1 THEN SUBSTR(MAX(CT_CD), 2,1)
+		            WHEN CT_LEVEL = 2 THEN SUBSTR(MAX(CT_CD), 3,2)
+		            WHEN CT_LEVEL = 3 THEN SUBSTR(MAX(CT_CD), 5,2)
+		        END AS CT_CD
+		    FROM 
+		        TB_GOODS_CATEGORY 
+		    WHERE 
+		        1=1
+		        <if test="upCtCd!=null and upCtCd!=''">
+		        AND UP_CT_CD = #{upCtCd}
+		        </if>
+		        AND CT_LEVEL = #{ctLevel}
+		    GROUP BY 
+		        CT_LEVEL
+		    UNION ALL
+    		SELECT #{ctLevel}, '0' CT_CD FROM DUAL    
+		)
+		WHERE ROWNUM = 1
+	</insert>
+	
+	<update id="updateCategory">
+		UPDATE 
+		TB_GOODS_CATEGORY
+		SET
+		CT_NAME = #{ctName}
+		WHERE
+		CT_CD = #{ctCd}
+	</update>
+	
+	
+</mapper>
